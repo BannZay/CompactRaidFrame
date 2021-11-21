@@ -47,7 +47,7 @@ function CompactRaidFrameManager_OnLoad(self)
     FlowContainer_Initialize(self.displayFrame.optionsFlowContainer);
 end
 
-local settings = { --[["Managed",]] "Locked", "SortMode", "KeepGroupsTogether", "DisplayPets", "DisplayMainTankAndAssist", "IsShown", "ShowBorders" };
+local settings = { --[["Managed",]] "Locked", "SortMode", "KeepGroupsTogether", "DisplayPets", "DisplayMainTankAndAssist", "IsShown", "ShowBorders", "DisplayPlayer" };
 function CompactRaidFrameManager_OnEvent(self, event, ...)
     if ( event ~= "RAID_TARGET_UPDATE" and InCombatLockdown() ) then
         self:RegisterEvent("PLAYER_REGEN_ENABLED");
@@ -386,27 +386,29 @@ function CompactRaidFrameManager_GetSetting(settingName)
 end
 
 function CompactRaidFrameManager_GetSettingBeforeLoad(settingName)
-    if ( settingName == "Managed" ) then
-        return true;
-    elseif ( settingName == "Locked" ) then
-        return true;
-    elseif ( settingName == "SortMode" ) then
-        return "role";
-    elseif ( settingName == "KeepGroupsTogether" ) then
-        return false;
-    elseif ( settingName == "DisplayPets" ) then
-        return false;
-    elseif ( settingName == "DisplayMainTankAndAssist" ) then
-        return true;
-    elseif ( settingName == "IsShown" ) then
-        return true;
-    elseif ( settingName == "ShowBorders" ) then
-        return true;
-    elseif ( settingName == "HorizontalGroups" ) then
-        return false;
-    else
-        GMError("Unknown setting "..tostring(settingName));
-    end
+	if ( settingName == "Managed" ) then
+		return true;
+	elseif ( settingName == "Locked" ) then
+		return true;
+	elseif ( settingName == "SortMode" ) then
+		return "role";
+	elseif ( settingName == "KeepGroupsTogether" ) then
+		return false;
+	elseif ( settingName == "DisplayPets" ) then
+		return false;
+	elseif ( settingName == "DisplayMainTankAndAssist" ) then
+		return true;
+	elseif ( settingName == "IsShown" ) then
+		return true;
+	elseif ( settingName == "ShowBorders" ) then
+		return true;
+	elseif ( settingName == "HorizontalGroups" ) then
+		return false;
+	elseif ( settingName == "DisplayPlayer" ) then
+		return true;
+	else
+		GMError("Unknown setting "..tostring(settingName));
+	end
 end
 
 do	--Enclosure to make sure people go through SetSetting
@@ -506,32 +508,38 @@ do	--Enclosure to make sure people go through SetSetting
         CUF_HORIZONTAL_GROUPS = horizontalGroups;
     end
 
-    function CompactRaidFrameManager_SetSetting(settingName, value)
-        cachedSettings[settingName] = value;
-        isSettingCached[settingName] = true;
-        --Perform the actual functions
-        if ( settingName == "Managed" ) then
-            CompactRaidFrameManager_SetManaged(value);
-        elseif ( settingName == "Locked" ) then
-            CompactRaidFrameManager_SetLocked(value);
-        elseif ( settingName == "SortMode" ) then
-            CompactRaidFrameManager_SetSortMode(value);
-        elseif ( settingName == "KeepGroupsTogether" ) then
-            CompactRaidFrameManager_SetKeepGroupsTogether(value);
-        elseif ( settingName == "DisplayPets" ) then
-            CompactRaidFrameManager_SetDisplayPets(value);
-        elseif ( settingName == "DisplayMainTankAndAssist" ) then
-            CompactRaidFrameManager_SetDisplayMainTankAndAssist(value);
-        elseif ( settingName == "IsShown" ) then
-            CompactRaidFrameManager_SetIsShown(value);
-        elseif ( settingName == "ShowBorders" ) then
-            CompactRaidFrameManager_SetBorderShown(value);
-        elseif ( settingName == "HorizontalGroups" ) then
-            CompactRaidFrameManager_SetHorizontalGroups(value);
-        else
-            error("Unknown setting "..tostring(settingName));
-        end
-    end
+	local function CompactRaidFrameManager_SetDisplayPlayer(value)
+		CompactRaidFrameContainer_TryUpdate(CompactRaidFrameContainer);
+	end
+
+	function CompactRaidFrameManager_SetSetting(settingName, value)
+		cachedSettings[settingName] = value;
+		isSettingCached[settingName] = true;
+		--Perform the actual functions
+		if ( settingName == "Managed" ) then
+			CompactRaidFrameManager_SetManaged(value);
+		elseif ( settingName == "Locked" ) then
+			CompactRaidFrameManager_SetLocked(value);
+		elseif ( settingName == "SortMode" ) then
+			CompactRaidFrameManager_SetSortMode(value);
+		elseif ( settingName == "KeepGroupsTogether" ) then
+			CompactRaidFrameManager_SetKeepGroupsTogether(value);
+		elseif ( settingName == "DisplayPets" ) then
+			CompactRaidFrameManager_SetDisplayPets(value);
+		elseif ( settingName == "DisplayMainTankAndAssist" ) then
+			CompactRaidFrameManager_SetDisplayMainTankAndAssist(value);
+		elseif ( settingName == "IsShown" ) then
+			CompactRaidFrameManager_SetIsShown(value);
+		elseif ( settingName == "ShowBorders" ) then
+			CompactRaidFrameManager_SetBorderShown(value);
+		elseif ( settingName == "HorizontalGroups" ) then
+			CompactRaidFrameManager_SetHorizontalGroups(value);
+		elseif ( settingName == "DisplayPlayer") then
+			CompactRaidFrameManager_SetDisplayPlayer(value);
+		else
+			error("Unknown setting "..tostring(settingName));
+		end
+	end
 end
 
 function CompactRaidFrameManager_UpdateContainerVisibility()

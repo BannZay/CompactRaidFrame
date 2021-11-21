@@ -250,43 +250,50 @@ function CompactRaidFrameContainer_AddGroup(self, id)
     groupFrame:Show();
 end
 
+local function ShouldDisplayFrame(unit)
+	return CompactRaidFrameManager_GetSetting("DisplayPlayer") or (unit ~= "unit" and UnitGUID("player") ~= UnitGUID(unit))
+end
+
 function CompactRaidFrameContainer_AddPlayers(self)
     --First, sort the players we're going to use
     assert(self.flowSortFunc);	--No sort function defined! Call CompactRaidFrameContainer_SetFlowSortFunction.
     assert(self.flowFilterFunc);	--No filter function defined! Call CompactRaidFrameContainer_SetFlowFilterFunction.
 
-    table.sort(self.units, self.flowSortFunc);
-
-    for i=1, #self.units do
-        local unit = self.units[i];
-        if ( self.flowFilterFunc(unit) ) then
-            CompactRaidFrameContainer_AddUnitFrame(self, unit, "raid");
-        end
-    end
-
-    FlowContainer_SetOrientation(self, "vertical")
+	table.sort(self.units, self.flowSortFunc);
+	
+	for i=1, #self.units do
+		local unit = self.units[i];
+		
+		if ( ShouldDisplayFrame(unit) ) then
+			if ( self.flowFilterFunc(unit) ) then
+				CompactRaidFrameContainer_AddUnitFrame(self, unit, "raid");
+			end
+		end
+	end
+	
+	FlowContainer_SetOrientation(self, "vertical")
 end
 
 function CompactRaidFrameContainer_AddPets(self)
-    if ( IsInRaid() ) then
-        for i=1, MAX_RAID_MEMBERS do
-            local unit = "raidpet"..i;
-            if ( UnitExists(unit) ) then
-                CompactRaidFrameContainer_AddUnitFrame(self, unit, "pet");
-            end
-        end
-    else
-        --Add the player's pet.
-        if ( UnitExists("pet") ) then
-            CompactRaidFrameContainer_AddUnitFrame(self, "pet", "pet");
-        end
-        for i=1, GetNumSubgroupMembers() do
-            local unit = "partypet"..i;
-            if ( UnitExists(unit) ) then
-                CompactRaidFrameContainer_AddUnitFrame(self, unit, "pet");
-            end
-        end
-    end
+	if ( IsInRaid() ) then
+		for i=1, MAX_RAID_MEMBERS do
+			local unit = "raidpet"..i;
+			if ( ShouldDisplayFrame("raid"..i) and UnitExists(unit) ) then
+				CompactRaidFrameContainer_AddUnitFrame(self, unit, "pet");
+			end
+		end
+	else
+		--Add the player's pet.
+		if ( ShouldDisplayFrame("player") and UnitExists("pet") ) then
+			CompactRaidFrameContainer_AddUnitFrame(self, "pet", "pet");
+		end
+		for i=1, GetNumSubgroupMembers() do
+			local unit = "partypet"..i;
+			if ( UnitExists(unit) ) then
+				CompactRaidFrameContainer_AddUnitFrame(self, unit, "pet");
+			end
+		end
+	end
 end
 
 local flaggedRoles = { "MAINTANK", "MAINASSIST" };
