@@ -391,8 +391,6 @@ function CompactUnitFrameProfilesGeneralOptionsFrame_OnShow(self)
 	-- 		option:Hide();
 	-- 	end
 	-- end
-
-	self.autoActivateBG:SetHeight(345);
 end
 
 function CompactUnitFrameProfile_UpdateAutoActivationDisabledLabel()
@@ -403,6 +401,10 @@ function CompactUnitFrameProfile_UpdateAutoActivationDisabledLabel()
 			hasGroupSize = true;
 			break;
 		end
+	end
+	
+	if ( GetRaidProfileOption(profile, "autoActivateSingle") ) then 
+		hasGroupSize = true 
 	end
 
 	local hasTalentSpec = false;

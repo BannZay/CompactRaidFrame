@@ -1,26 +1,26 @@
-local UnitName					= UnitName;
-local UnitGUID					= UnitGUID;
-local UnitIsUnit				= UnitIsUnit;
-local UnitExists				= UnitExists;
-local UnitIsEnemy				= UnitIsEnemy
-local GetSpellInfo				= GetSpellInfo;
-local UnitIsPlayer				= UnitIsPlayer;
-local UnitIsConnected			= UnitIsConnected;
-local DemoteAssistant			= DemoteAssistant;
-local SendChatMessage			= SendChatMessage;
-local GetRaidRosterInfo			= GetRaidRosterInfo;
-local GetNumRaidMembers			= GetNumRaidMembers;
-local PromoteToAssistant		= PromoteToAssistant;
-local GetNumPartyMembers		= GetNumPartyMembers;
-local GetPartyLeaderIndex		= GetPartyLeaderIndex;
-local GetPlayerMapPosition		= GetPlayerMapPosition;
-local GetRealNumRaidMembers		= GetRealNumRaidMembers;
-local IsActiveBattlefieldArena	= IsActiveBattlefieldArena;
+local UnitName                  = UnitName;
+local UnitGUID                  = UnitGUID;
+local UnitIsUnit                = UnitIsUnit;
+local UnitExists                = UnitExists;
+local UnitIsEnemy               = UnitIsEnemy
+local GetSpellInfo              = GetSpellInfo;
+local UnitIsPlayer              = UnitIsPlayer;
+local UnitIsConnected           = UnitIsConnected;
+local DemoteAssistant           = DemoteAssistant;
+local SendChatMessage           = SendChatMessage;
+local GetRaidRosterInfo         = GetRaidRosterInfo;
+local GetNumRaidMembers         = GetNumRaidMembers;
+local PromoteToAssistant        = PromoteToAssistant;
+local GetNumPartyMembers        = GetNumPartyMembers;
+local GetPartyLeaderIndex       = GetPartyLeaderIndex;
+local GetPlayerMapPosition      = GetPlayerMapPosition;
+local GetRealNumRaidMembers     = GetRealNumRaidMembers;
+local IsActiveBattlefieldArena  = IsActiveBattlefieldArena;
 
 local MAX_RAID_MEMBERS = MAX_RAID_MEMBERS;
 
 SOUNDKIT = SOUNDKIT or {};
-SOUNDKIT.IG_MAINMENU_OPTION 			= "Interface\\AddOns\\CompactRaidFrame\\Media\\Sounds\\SOUNDKIT\\852.ogg";
+SOUNDKIT.IG_MAINMENU_OPTION             = "Interface\\AddOns\\CompactRaidFrame\\Media\\Sounds\\SOUNDKIT\\852.ogg";
 SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON = "Interface\\AddOns\\CompactRaidFrame\\Media\\Sounds\\SOUNDKIT\\856.ogg";
 
 hooksecurefunc("BlizzardOptionsPanel_OnEvent", function(self, event, ...)
@@ -50,8 +50,13 @@ function GetNumGroupMembers()
 end
 
 function GetDisplayedAllyFrames()
+    local profile = GetActiveRaidProfile();
+    local useCompactOutsideGroup = GetRaidProfileOption(profile, "autoActivateSingle") and GetRaidProfileOption(profile, "displayPlayer");
     local useCompact = CUF_CVar:GetCVarBool("useCompactPartyFrames");
-    if ( IsActiveBattlefieldArena() and not useCompact ) then
+
+    if ( not IsInGroup() and useCompactOutsideGroup and useCompact) then
+        return "raid";
+    elseif ( IsActiveBattlefieldArena() and not useCompact ) then
         return "party";
     elseif ( IsInGroup() and ( IsInRaid() or useCompact ) ) then
         return "raid";
@@ -106,13 +111,13 @@ function CanBeRaidTarget(unit)
 end
 
 local MAX_BATTLEGOUND_UNIT = {
-    AlteracValley 		= 40,
-    ArathiBasin 		= 15,
-    NetherstormArena 	= 15,
-    WarsongGulch 		= 10,
-    IsleofConquest 		= 40,
+    AlteracValley       = 40,
+    ArathiBasin         = 15,
+    NetherstormArena    = 15,
+    WarsongGulch        = 10,
+    IsleofConquest      = 40,
     StrandoftheAncients = 15,
-    LakeWintergrasp 	= 40,
+    LakeWintergrasp     = 40,
 };
 
 local CrossLocation = {
@@ -313,12 +318,18 @@ local function HidePartyFrame()
 end
 
 local function ShowPartyFrame()
-    for i=1, MAX_PARTY_MEMBERS, 1 do
-        if ( UnitExists("party"..i) ) then
-            _G["PartyMemberFrame"..i]:SetAlpha(1);
-            _G["PartyMemberFrame"..i]:Show();
-            PartyMemberFrame_OnLoad(_G["PartyMemberFrame"..i]);
+    if IsInGroup() then
+        for i=1, MAX_PARTY_MEMBERS, 1 do
+            if ( UnitExists("party"..i) ) then
+                _G["PartyMemberFrame"..i]:SetAlpha(1);
+                _G["PartyMemberFrame"..i]:Show();
+                PartyMemberFrame_OnLoad(_G["PartyMemberFrame"..i]);
+            end
         end
+    else
+        _G["PartyMemberFrame"..1]:SetAlpha(1);
+        _G["PartyMemberFrame"..1]:Show();
+        PartyMemberFrame_OnLoad(_G["PartyMemberFrame"..1]);
     end
 end
 

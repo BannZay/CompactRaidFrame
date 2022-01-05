@@ -65,7 +65,7 @@
   </Button>
   <Frame name="CompactRaidFrameManager" inherits="SecureHandlerStateTemplate" enableMouse="true" frameStrata="LOW" hidden="true" parent="UIParent">
     <Attributes>
-      <Attribute name="_onstate-showParty" value="if newstate == 'show' then self:Show(); else self:Hide(); end" />
+      <!-- <Attribute name="_onstate-showParty" value="if newstate == 'show' then self:Show(); else self:Hide(); end" /> -->
     </Attributes>
     <Size x="200" y="140" />
     <Anchors>

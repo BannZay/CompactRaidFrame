@@ -25,6 +25,7 @@ function CompactRaidFrameContainer_OnLoad(self)
     CompactRaidFrameContainer_UpdateDisplayedUnits(self);
 
     self:RegisterEvent("PARTY_MEMBERS_CHANGED");
+    self:RegisterEvent("PLAYER_ENTERING_WORLD");
     self:RegisterEvent("UNIT_PET");
 
     local unitFrameReleaseFunc = function(frame)
@@ -57,6 +58,9 @@ function CompactRaidFrameContainer_OnEvent(self, event, ...)
     end
 
     if ( event == "PARTY_MEMBERS_CHANGED" ) then
+        CompactRaidFrameContainer_UpdateDisplayedUnits(self);
+        CompactRaidFrameContainer_TryUpdate(self);
+    elseif ( event == "PLAYER_ENTERING_WORLD" ) then
         CompactRaidFrameContainer_UpdateDisplayedUnits(self);
         CompactRaidFrameContainer_TryUpdate(self);
     elseif ( event == "UNIT_PET" ) then

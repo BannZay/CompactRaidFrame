@@ -225,13 +225,15 @@
               CompactRaidFrameManager_UpdateShown(CompactRaidFrameManager);
 
               if ( value and value ~= "0" ) then
+                self:GetParent().optionsFrame.autoActivateSingle:Enable();
                 self:GetParent().optionsFrame.autoActivate2Players:Enable();
                 self:GetParent().optionsFrame.autoActivate3Players:Enable();
                 self:GetParent().optionsFrame.autoActivate5Players:Enable();
               else
+                self:GetParent().optionsFrame.autoActivateSingle:Disable();
                 self:GetParent().optionsFrame.autoActivate2Players:Disable();
                 self:GetParent().optionsFrame.autoActivate3Players:Disable();
-                self:GetParent().optionsFrame .autoActivate5Players:Disable();
+                self:GetParent().optionsFrame.autoActivate5Players:Disable();
               end
             end;
             BlizzardOptionsPanel_RegisterControl(self, self:GetParent());
@@ -462,8 +464,7 @@
         <Layers>
           <Layer level="BACKGROUND">
             <Texture name="$parentAutoActivateBG" parentKey="autoActivateBG">
-              <!--The size is changed programatically -->
-              <Size x="190" y="0" />
+              <Size x="190" y="370" />
               <!--Also change the with of AutoActivateDisabledLabel -->
               <Anchors>
                 <Anchor point="TOPLEFT" relativeTo="$parent" relativePoint="TOPLEFT" x="415" y="-50" />
@@ -535,7 +536,13 @@
             </Anchors>
             <Scripts>
               <OnLoad>
-                CompactUnitFrameProfilesCheckButton_InitializeWidget(self, "displayPlayer");
+                local updateFunc = function()
+                    local checked = self:GetChecked();
+                    local autoActivateSelfFrame = self:GetParent().autoActivateSingle;
+                    autoActivateSelfFrame:SetEnabled(checked and CUF_CVar:GetCVarBool("useCompactPartyFrames") );
+                    CompactUnitFrameProfilesCheckButton_Update(self);
+                end;
+                CompactUnitFrameProfilesCheckButton_InitializeWidget(self, "displayPlayer", updateFunc);
               </OnLoad>
             </Scripts>
           </CheckButton>
@@ -672,10 +679,24 @@
               </OnLoad>
             </Scripts>
           </Slider>
-
-          <CheckButton name="$parentAutoActivate2Players" inherits="CompactUnitFrameProfilesCheckButtonTemplate" parentKey="autoActivate2Players">
+          <CheckButton name="$parentAutoActivateSingle" inherits="CompactUnitFrameProfilesCheckButtonTemplate" parentKey="autoActivateSingle">
             <Anchors>
               <Anchor point="TOPLEFT" relativeTo="$parentAutoActivateLabel" relativePoint="BOTTOMLEFT" x="0" y="-5" />
+            </Anchors>
+            <Scripts>
+              <OnLoad>
+                local updateFunc = function() 
+                    CompactRaidFrameManager_UpdateShown(CompactRaidFrameManager) 
+                    CompactUnitFrameProfilesCheckButton_Update(self) 
+                end
+                CompactUnitFrameProfilesCheckButton_InitializeWidget(self, "autoActivateSingle", updateFunc);
+                self.disabledTooltip = AUTO_ACTIVATE_DISABLED_IN_PARTY;
+              </OnLoad>
+            </Scripts>
+          </CheckButton>
+          <CheckButton name="$parentAutoActivate2Players" inherits="CompactUnitFrameProfilesCheckButtonTemplate" parentKey="autoActivate2Players">
+            <Anchors>
+              <Anchor point="TOPLEFT" relativeTo="$parentAutoActivateSingle" relativePoint="BOTTOMLEFT" x="0" y="0" />
             </Anchors>
             <Scripts>
               <OnLoad>
