@@ -47,7 +47,7 @@ function CompactRaidFrameManager_OnLoad(self)
     FlowContainer_Initialize(self.displayFrame.optionsFlowContainer);
 end
 
-local settings = { --[["Managed",]] "Locked", "SortMode", "KeepGroupsTogether", "DisplayPets", "DisplayMainTankAndAssist", "IsShown", "ShowBorders", "DisplayPlayer" };
+local settings = { --[["Managed",]] "Locked", "SortMode", "KeepGroupsTogether", "DisplayPets", "DisplayMainTankAndAssist", "IsShown", "ShowBorders", "DisplayPlayer", "KeepPetsCloseToOwner" };
 function CompactRaidFrameManager_OnEvent(self, event, ...)
     if ( event ~= "RAID_TARGET_UPDATE" and InCombatLockdown() ) then
         self:RegisterEvent("PLAYER_REGEN_ENABLED");
@@ -396,6 +396,8 @@ function CompactRaidFrameManager_GetSettingBeforeLoad(settingName)
 		return false;
 	elseif ( settingName == "DisplayPets" ) then
 		return false;
+	elseif ( settingName == "KeepPetsCloseToOwner" ) then
+		return true;
 	elseif ( settingName == "DisplayMainTankAndAssist" ) then
 		return true;
 	elseif ( settingName == "IsShown" ) then
@@ -454,6 +456,16 @@ do	--Enclosure to make sure people go through SetSetting
 
         CompactRaidFrameContainer_SetGroupMode(manager.container, groupMode);
         CompactRaidFrameManager_UpdateFilterInfo(manager);
+    end
+
+    local function CompactRaidFrameManager_KeepPetsCloseToOwner(value)
+        local container = CompactRaidFrameManager.container;
+        local keepPetsCloseToOwner;
+        if ( value and value ~= "0" ) then
+            keepPetsCloseToOwner = true;
+        end
+
+        CompactRaidFrameContainer_KeepPetsCloseToOwner(container, keepPetsCloseToOwner);
     end
 
     local function CompactRaidFrameManager_SetDisplayPets(value)
@@ -534,8 +546,10 @@ do	--Enclosure to make sure people go through SetSetting
 			CompactRaidFrameManager_SetBorderShown(value);
 		elseif ( settingName == "HorizontalGroups" ) then
 			CompactRaidFrameManager_SetHorizontalGroups(value);
-		elseif ( settingName == "DisplayPlayer") then
+		elseif ( settingName == "DisplayPlayer" ) then
 			CompactRaidFrameManager_SetDisplayPlayer(value);
+		elseif ( settingName == "KeepPetsCloseToOwner" ) then
+			CompactRaidFrameManager_KeepPetsCloseToOwner(value)
 		else
 			error("Unknown setting "..tostring(settingName));
 		end

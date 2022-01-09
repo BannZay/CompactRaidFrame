@@ -497,12 +497,15 @@
                   local currentValue = GetRaidProfileOption(CompactUnitFrameProfiles.selectedProfile, self.optionName);
                   local sortBy = _G[self:GetParent():GetName().."SortByDropdown"];
                   local horizontalGroups = _G[self:GetParent():GetName().."HorizontalGroups"];
+                  local keepPetsCloseToOwner = _G[self:GetParent():GetName().."KeepPetsCloseToOwner"]
                   if ( currentValue ) then
                     sortBy:Hide();
                     horizontalGroups:Show();
+                    keepPetsCloseToOwner:Hide();
                   else
                     sortBy:Show();
                     horizontalGroups:Hide();
+                    keepPetsCloseToOwner:Show();
                   end
                   self:SetChecked(currentValue);
                 end)
@@ -530,6 +533,20 @@
               </OnLoad>
             </Scripts>
           </Frame>
+          <CheckButton name="$parentKeepPetsCloseToOwner" inherits="CompactUnitFrameProfilesCheckButtonTemplate" parentKey="KeepPetsCloseToOwner">
+            <Anchors>
+              <Anchor point="TOPLEFT" relativeTo="$parentSortByDropdown" relativePoint="TOPRIGHT" x="0" y="0" />
+            </Anchors>
+            <Scripts>
+              <OnLoad>
+                local petsDisplayed = GetRaidProfileOption(CompactUnitFrameProfiles.selectedProfile, self.optionName);
+                CompactUnitFrameProfilesCheckButton_InitializeWidget(self, "keepPetsCloseToOwner");
+                if petsDisplayed ~= true then
+                    self:Disable()
+                end
+              </OnLoad>
+            </Scripts>
+          </CheckButton>
           <CheckButton name="$parentDisplayPlayer" inherits="CompactUnitFrameProfilesCheckButtonTemplate">
             <Anchors>
               <Anchor point="TOPLEFT" relativeTo="$parentKeepGroupsTogether" relativePoint="BOTTOMLEFT" x="0" y="-50" />
@@ -592,7 +609,17 @@
             </Anchors>
             <Scripts>
               <OnLoad>
-                CompactUnitFrameProfilesCheckButton_InitializeWidget(self, "displayPets");
+                local function updateFunc()
+                    CompactUnitFrameProfilesCheckButton_Update(self)
+                    local currentValue = GetRaidProfileOption(CompactUnitFrameProfiles.selectedProfile, self.optionName);
+                    if currentValue then
+                        self:GetParent().KeepPetsCloseToOwner:Enable()
+                    else
+                        self:GetParent().KeepPetsCloseToOwner:Disable()
+                    end
+                    
+                end
+                CompactUnitFrameProfilesCheckButton_InitializeWidget(self, "displayPets", updateFunc);
               </OnLoad>
             </Scripts>
           </CheckButton>

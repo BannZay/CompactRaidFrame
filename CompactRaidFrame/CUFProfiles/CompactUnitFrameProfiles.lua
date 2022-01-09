@@ -612,6 +612,7 @@ CUFProfileActionTable = {
 	keepGroupsTogether = CompactUnitFrameProfiles_GenerateRaidManagerSetting("KeepGroupsTogether"),
 	sortBy = CompactUnitFrameProfiles_GenerateRaidManagerSetting("SortMode"),
 	displayPets = CompactUnitFrameProfiles_GenerateRaidManagerSetting("DisplayPets"),
+	keepPetsCloseToOwner = CompactUnitFrameProfiles_GenerateRaidManagerSetting("KeepPetsCloseToOwner"),
 	displayMainTankAndAssist = CompactUnitFrameProfiles_GenerateRaidManagerSetting("DisplayMainTankAndAssist"),
 	displayPlayer = CompactUnitFrameProfiles_GenerateRaidManagerSetting("DisplayPlayer"),
 	displayHealPrediction = CompactUnitFrameProfiles_GenerateOptionSetter("displayHealPrediction", "all"),

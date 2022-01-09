@@ -1,9 +1,9 @@
 MAX_RAID_GROUPS = 8;
 
 local frameCreationSpecifiers = {
-    raid = { mapping = UnitGUID, setUpFunc = DefaultCompactUnitFrameSetup, updateList = "normal"},
+    raid = { mapping = UnitGUID, setUpFunc = DefaultCompactUnitFrameSetup, updateList = "normal" },
     pet =  { setUpFunc = DefaultCompactMiniFrameSetup, updateList = "mini" },
-    flagged = { mapping = UnitGUID, setUpFunc = DefaultCompactUnitFrameSetup, updateList = "normal"	},
+    flagged = { mapping = UnitGUID, setUpFunc = DefaultCompactUnitFrameSetup, updateList = "normal" },
     target = { setUpFunc = DefaultCompactMiniFrameSetup, updateList = "mini" },
 }
 
@@ -32,14 +32,14 @@ function CompactRaidFrameContainer_OnLoad(self)
         CompactUnitFrame_SetUnit(frame, nil);
     end;
     self.frameReservations = {
-        raid	= CompactRaidFrameReservation_NewManager(unitFrameReleaseFunc);
-        pet		= CompactRaidFrameReservation_NewManager(unitFrameReleaseFunc);
-        flagged	= CompactRaidFrameReservation_NewManager(unitFrameReleaseFunc);	--For Main Tank/Assist units
-        target	= CompactRaidFrameReservation_NewManager(unitFrameReleaseFunc);	--Target of target for Main Tank/Main Assist
+        raid    = CompactRaidFrameReservation_NewManager(unitFrameReleaseFunc);
+        pet     = CompactRaidFrameReservation_NewManager(unitFrameReleaseFunc);
+        flagged = CompactRaidFrameReservation_NewManager(unitFrameReleaseFunc); --For Main Tank/Assist units
+        target  = CompactRaidFrameReservation_NewManager(unitFrameReleaseFunc); --Target of target for Main Tank/Main Assist
     }
 
     self.frameUpdateList = {
-        normal = {},	--Groups are also in this normal list.
+        normal = {},    --Groups are also in this normal list.
         mini = {},
         group = {},
     }
@@ -48,6 +48,7 @@ function CompactRaidFrameContainer_OnLoad(self)
         end;
 
     self.displayPets = true;
+    self.keepPetsCloseToOwner = true;
     self.displayFlaggedMembers = true;
 end
 
@@ -104,6 +105,13 @@ function CompactRaidFrameContainer_SetFlowSortFunction(self, flowSortFunc)
     --The ordering must be well-defined, even across units that will be filtered out
     self.flowSortFunc = flowSortFunc;
     CompactRaidFrameContainer_TryUpdate(self);
+end
+
+function CompactRaidFrameContainer_KeepPetsCloseToOwner(self, keepPetsCloseToOwner)
+    if ( self.keepPetsCloseToOwner ~= keepPetsCloseToOwner ) then
+        self.keepPetsCloseToOwner = keepPetsCloseToOwner;
+        CompactRaidFrameContainer_TryUpdate(self);
+    end
 end
 
 function CompactRaidFrameContainer_SetDisplayPets(self, displayPets)
@@ -173,7 +181,7 @@ function CompactRaidFrameContainer_LayoutFrames(self)
     end
     FlowContainer_RemoveAllObjects(self);
 
-    FlowContainer_PauseUpdates(self);	--We don't want to update it every time we add an item.
+    FlowContainer_PauseUpdates(self);   --We don't want to update it every time we add an item.
 
 
     if ( self.displayFlaggedMembers ) then
@@ -187,10 +195,6 @@ function CompactRaidFrameContainer_LayoutFrames(self)
         CompactRaidFrameContainer_AddPlayers(self);
     else
         error("Unknown group mode");
-    end
-
-    if ( self.displayPets ) then
-        CompactRaidFrameContainer_AddPets(self);
     end
 
     FlowContainer_ResumeUpdates(self);
@@ -226,8 +230,11 @@ do
             CompactRaidFrameContainer_AddGroup(self, "PARTY");
         end
         FlowContainer_SetOrientation(self, "+")
+        
+        if ( self.displayPets ) then
+            CompactRaidFrameContainer_AddPets(self);
+        end
     end
-
 end
 
 function CompactRaidFrameContainer_AddGroup(self, id)
@@ -255,49 +262,73 @@ function CompactRaidFrameContainer_AddGroup(self, id)
 end
 
 local function ShouldDisplayFrame(unit)
-	return CompactRaidFrameManager_GetSetting("DisplayPlayer") or (unit ~= "unit" and UnitGUID("player") ~= UnitGUID(unit))
+    return CompactRaidFrameManager_GetSetting("DisplayPlayer") or (unit ~= "unit" and UnitGUID("player") ~= UnitGUID(unit))
+end
+
+local function GetPetId(unitId)
+    if unitId == nil then
+        return nil
+    elseif ( string.sub(unitId, 1, 4) == "raid" ) then
+        return "raidpet" .. string.sub(unitId, 5);
+    elseif ( string.sub(unitId, 1, 5) == "party" ) then
+        return "partypet" .. string.sub(unitId, 6);
+    elseif ( unitId == "player" ) then
+        return "pet";
+    else
+        error("not expected unitId = " .. unit);
+    end
 end
 
 function CompactRaidFrameContainer_AddPlayers(self)
     --First, sort the players we're going to use
-    assert(self.flowSortFunc);	--No sort function defined! Call CompactRaidFrameContainer_SetFlowSortFunction.
-    assert(self.flowFilterFunc);	--No filter function defined! Call CompactRaidFrameContainer_SetFlowFilterFunction.
+    assert(self.flowSortFunc);  --No sort function defined! Call CompactRaidFrameContainer_SetFlowSortFunction.
+    assert(self.flowFilterFunc);    --No filter function defined! Call CompactRaidFrameContainer_SetFlowFilterFunction.
 
-	table.sort(self.units, self.flowSortFunc);
-	
-	for i=1, #self.units do
-		local unit = self.units[i];
-		
-		if ( ShouldDisplayFrame(unit) ) then
-			if ( self.flowFilterFunc(unit) ) then
-				CompactRaidFrameContainer_AddUnitFrame(self, unit, "raid");
-			end
-		end
-	end
-	
-	FlowContainer_SetOrientation(self, "vertical")
+    table.sort(self.units, self.flowSortFunc);
+    
+    for i=1, #self.units do
+        local unit = self.units[i];
+        
+        if ( ShouldDisplayFrame(unit) ) then
+            if ( self.flowFilterFunc(unit) ) then
+                CompactRaidFrameContainer_AddUnitFrame(self, unit, "raid");
+                if ( self.displayPets and self.keepPetsCloseToOwner ) then
+                    local petId = GetPetId(unit)
+                    if UnitExists(petId) then
+                        CompactRaidFrameContainer_AddUnitFrame(self, petId, "pet");
+                    end
+                end
+            end
+        end
+    end
+    
+    FlowContainer_SetOrientation(self, "vertical")
+
+    if ( self.displayPets and not self.keepPetsCloseToOwner ) then
+        CompactRaidFrameContainer_AddPets(self);
+    end
 end
 
 function CompactRaidFrameContainer_AddPets(self)
-	if ( IsInRaid() ) then
-		for i=1, MAX_RAID_MEMBERS do
-			local unit = "raidpet"..i;
-			if ( ShouldDisplayFrame("raid"..i) and UnitExists(unit) ) then
-				CompactRaidFrameContainer_AddUnitFrame(self, unit, "pet");
-			end
-		end
-	else
-		--Add the player's pet.
-		if ( ShouldDisplayFrame("player") and UnitExists("pet") ) then
-			CompactRaidFrameContainer_AddUnitFrame(self, "pet", "pet");
-		end
-		for i=1, GetNumSubgroupMembers() do
-			local unit = "partypet"..i;
-			if ( UnitExists(unit) ) then
-				CompactRaidFrameContainer_AddUnitFrame(self, unit, "pet");
-			end
-		end
-	end
+    if ( IsInRaid() ) then
+        for i=1, MAX_RAID_MEMBERS do
+            local unit = "raidpet"..i;
+            if ( ShouldDisplayFrame("raid"..i) and UnitExists(unit) ) then
+                CompactRaidFrameContainer_AddUnitFrame(self, unit, "pet");
+            end
+        end
+    else
+        --Add the player's pet.
+        if ( ShouldDisplayFrame("player") and UnitExists("pet") ) then
+            CompactRaidFrameContainer_AddUnitFrame(self, "pet", "pet");
+        end
+        for i=1, GetNumSubgroupMembers() do
+            local unit = "partypet"..i;
+            if ( UnitExists(unit) ) then
+                CompactRaidFrameContainer_AddUnitFrame(self, unit, "pet");
+            end
+        end
+    end
 end
 
 local flaggedRoles = { "MAINTANK", "MAINASSIST" };
@@ -311,7 +342,7 @@ function CompactRaidFrameContainer_AddFlaggedUnits(self)
             local unit = "raid"..i;
             local name, rank, subgroup, level, class, fileName, zone, online, isDead, role, isML = GetRaidRosterInfo(i);
             if ( role == desiredRole ) then
-                FlowContainer_BeginAtomicAdd(self);	--We want each unit to be right next to its target and target of target.
+                FlowContainer_BeginAtomicAdd(self); --We want each unit to be right next to its target and target of target.
 
                 CompactRaidFrameContainer_AddUnitFrame(self, unit, "flagged");
 
@@ -385,7 +416,7 @@ function CompactRaidFrameContainer_ReleaseAllReservedFrames(self)
     end
 end
 
-function RaidUtil_GetUsedGroups(tab)	--Fills out the table with which groups have people.
+function RaidUtil_GetUsedGroups(tab)    --Fills out the table with which groups have people.
     for i=1, MAX_RAID_GROUPS do
         tab[i] = false;
     end
