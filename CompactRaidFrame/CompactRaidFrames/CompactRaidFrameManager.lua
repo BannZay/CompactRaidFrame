@@ -770,6 +770,15 @@ function CRFSort_Group(token1, token2)
         if ( not id1 or not id2 ) then
             return id1;
         end
+
+        if UnitGUID(token1) == UnitGUID("player") then
+            return true
+        end
+        
+        if UnitGUID(token2) == UnitGUID("player") then
+            return false
+        end
+
         local _, _, subgroup1 = GetRaidRosterInfo(id1);
         local _, _, subgroup2 = GetRaidRosterInfo(id2);
 
