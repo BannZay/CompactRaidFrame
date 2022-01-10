@@ -23,6 +23,7 @@ local DEFAULT_PROFILE = {
 	keepPetsCloseToOwner = true,
 	displayMainTankAndAssist = true,
 	displayPlayer = true,
+	replaceTarget = false,
 	displayBorder = true,
 	displayNonBossDebuffs = true,
 	displayOnlyDispellableDebuffs = false,
@@ -52,6 +53,7 @@ local FLATTENDED_OPTIONS = {
 	["displayAggroHighlight"] = 1,
 	["useClassColors"] = 1,
 	["displayPlayer"] = 1,
+	["replaceTarget"] = 1,
 	["displayPets"] = 1,
 	["keepPetsCloseToOwner"] = 1,
 	["displayMainTankAndAssist"] = 1,
@@ -79,11 +81,6 @@ function CompactRaidFrame:OnInitialize()
 	self.db.char.profile = self.db.char.profile or {};
 	PROFILES = self.db.char.profile;
 	CUF_CONFIG = self.db.char.cvar;
-
-	if ( not ROMANSPECTOR_DISCORD ) then
-		ROMANSPECTOR_DISCORD = true;
-		DEFAULT_CHAT_FRAME:AddMessage("|cffbaf5aeCompactRaidFrame|r: Join my Discord |cff44d3e3https://discord.gg/wXw6pTvxMQ|r");
-	end
 
 	CompactUnitFrameProfiles_OnEvent(CompactUnitFrameProfiles, "COMPACT_UNIT_FRAME_PROFILES_LOADED");
 end

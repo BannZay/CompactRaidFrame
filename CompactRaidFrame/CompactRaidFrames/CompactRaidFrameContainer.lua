@@ -5,6 +5,7 @@ local frameCreationSpecifiers = {
     pet =  { setUpFunc = DefaultCompactMiniFrameSetup, updateList = "mini" },
     flagged = { mapping = UnitGUID, setUpFunc = DefaultCompactUnitFrameSetup, updateList = "normal" },
     target = { setUpFunc = DefaultCompactMiniFrameSetup, updateList = "mini" },
+    frameReplacement = { setUpFunc = FrameReplacementCompactUnitFrameSetup, updateList = "frameReplacement" },
 }
 
 --Widget Handlers
@@ -36,12 +37,14 @@ function CompactRaidFrameContainer_OnLoad(self)
         pet     = CompactRaidFrameReservation_NewManager(unitFrameReleaseFunc);
         flagged = CompactRaidFrameReservation_NewManager(unitFrameReleaseFunc); --For Main Tank/Assist units
         target  = CompactRaidFrameReservation_NewManager(unitFrameReleaseFunc); --Target of target for Main Tank/Main Assist
+        frameReplacement  = CompactRaidFrameReservation_NewManager(unitFrameReleaseFunc);
     }
 
     self.frameUpdateList = {
         normal = {},    --Groups are also in this normal list.
         mini = {},
         group = {},
+        frameReplacement = {},
     }
     self.unitFrameUnusedFunc = function(frame)
             frame.inUse = false;
@@ -133,6 +136,11 @@ function CompactRaidFrameContainer_SetBorderShown(self, showBorder)
     CompactRaidFrameContainer_UpdateBorder(self);
 end
 
+function CompactRaidFrameContainer_SetReplaceTarget(self, replaceTarget)
+    self.ReplaceTarget = replaceTarget;
+    CompactRaidFrameContainer_TryUpdate(self);
+end
+
 function CompactRaidFrameContainer_ApplyToFrames(self, updateSpecifier, func, ...)
     for specifier, list in pairs(self.frameUpdateList) do
         if ( updateSpecifier == "all" or specifier == updateSpecifier ) then
@@ -179,10 +187,16 @@ function CompactRaidFrameContainer_LayoutFrames(self)
             self.flowFrames[i]:unusedFunc();
         end
     end
+
+    for i=1, #self.standaloneFrames do
+        if ( type(self.standaloneFrames[i]) == "table" and self.standaloneFrames[i].unusedFunc ) then
+            self.standaloneFrames[i]:unusedFunc();
+        end
+    end
+
     FlowContainer_RemoveAllObjects(self);
 
     FlowContainer_PauseUpdates(self);   --We don't want to update it every time we add an item.
-
 
     if ( self.displayFlaggedMembers ) then
         CompactRaidFrameContainer_AddFlaggedUnits(self);
@@ -196,7 +210,11 @@ function CompactRaidFrameContainer_LayoutFrames(self)
     else
         error("Unknown group mode");
     end
-
+    
+    if ( self.ReplaceTarget ) then
+       CompactRaidFrameContainer_ReplaceUnitFrames(self);
+    end
+    
     FlowContainer_ResumeUpdates(self);
 
     CompactRaidFrameContainer_UpdateBorder(self);
@@ -277,6 +295,17 @@ local function GetPetId(unitId)
     else
         error("not expected unitId = " .. unit);
     end
+end
+
+function CompactRaidFrameContainer_ReplaceUnitFrames(self)
+    local targetFrame = CompactRaidFrameContainer_AddUnitFrame(self, "Target", "frameReplacement", true);
+    
+    local targetFrameTot = CompactRaidFrameContainer_AddUnitFrame(self, "TargetTarget", "frameReplacement", true);
+    targetFrameTot:ClearAllPoints();
+    targetFrameTot:SetPoint("BOTTOMRIGHT", targetFrame, "BOTTOMRIGHT", 0, -40);
+    targetFrameTot:SetPoint("TOPLEFT", targetFrame, "BOTTOM", 0, 0);
+    
+    local focusFrame = CompactRaidFrameContainer_AddUnitFrame(self, "Focus", "frameReplacement", true);
 end
 
 function CompactRaidFrameContainer_AddPlayers(self)
@@ -364,12 +393,17 @@ function CompactRaidFrameContainer_AddFlaggedUnits(self)
 end
 
 --Utility Functions
-function CompactRaidFrameContainer_AddUnitFrame(self, unit, frameType)
-    local frame = CompactRaidFrameContainer_GetUnitFrame(self, unit, frameType);
+function CompactRaidFrameContainer_AddUnitFrame(self, unit, frameType, standalone)
+    local info = frameCreationSpecifiers[frameType];
+    local frame = CompactRaidFrameContainer_GetUnitFrame(self, unit, frameType, standalone);
 
     CompactUnitFrame_SetUnit(frame, unit);
-    FlowContainer_AddObject(self, frame);
-
+    
+    if standalone then
+        FlowContainer_AddStandaloneObject(self, frame)
+    else
+        FlowContainer_AddObject(self, frame);
+    end
     return frame;
 end
 
@@ -377,8 +411,8 @@ local function applyFunc(unitFrame, updateSpecifier, func, ...)
     func(unitFrame, ...);
 end
 
-local unitFramesCreated = 0;
-function CompactRaidFrameContainer_GetUnitFrame(self, unit, frameType)
+local unitFramesCreated = {}
+function CompactRaidFrameContainer_GetUnitFrame(self, unit, frameType, standalone)
     local info = frameCreationSpecifiers[frameType];
     assert(info);
     assert(info.setUpFunc);
@@ -393,14 +427,21 @@ function CompactRaidFrameContainer_GetUnitFrame(self, unit, frameType)
 
     local frame = CompactRaidFrameReservation_GetFrame(self.frameReservations[frameType], mapping);
     if ( not frame ) then
-        unitFramesCreated = unitFramesCreated + 1;
-        frame = CreateFrame("Button", "CompactRaidFrame"..unitFramesCreated, self, "CompactUnitFrameTemplate");
+        local name = standalone and "CompactRaidFrameStandalone" or "CompactRaidFrame" -- not to break existing addons that are relies on frame number
+        
+        if unitFramesCreated[name] == nil then
+            unitFramesCreated[name] = 0
+        end
+        
+        unitFramesCreated[name] = unitFramesCreated[name] + 1;
+        
+        frame = CreateFrame("Button",  name..unitFramesCreated[name], self, "CompactUnitFrameTemplate");
         frame.applyFunc = applyFunc;
-        CompactUnitFrame_SetUpFrame(frame, info.setUpFunc);
+        CompactUnitFrame_SetUpFrame(frame, info.setUpFunc, mapping);
         CompactUnitFrame_SetUpdateAllEvent(frame, "PARTY_MEMBERS_CHANGED");
         frame.unusedFunc = self.unitFrameUnusedFunc;
         tinsert(self.frameUpdateList[info.updateList], frame);
-        CompactRaidFrameReservation_RegisterReservation(self.frameReservations[frameType], frame, mapping);
+        CompactRaidFrameReservation_RegisterReservation(self.frameReservations[frameType], frame, mapping, standalone);
 
         RegisterStateDriver(frame, "shownState", "[group:party] show; [group:raid] show; [nogroup:party] hide");
         RegisterUnitWatch(frame);

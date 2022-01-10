@@ -68,7 +68,7 @@ function CompactUnitFrame_OnEvent(self, event, ...)
         CompactUnitFrame_FinishReadyCheck(self);
     elseif ( event == "PARTY_MEMBERS_CHANGED" ) then
         CompactUnitFrame_UpdateAll(self);
-    elseif ( event == "PARTY_MEMBER_DISABLE" or event == "PARTY_MEMBER_ENABLE" ) then	--Alternate power info may now be available.
+    elseif ( event == "PARTY_MEMBER_DISABLE" or event == "PARTY_MEMBER_ENABLE" ) then   --Alternate power info may now be available.
         CompactUnitFrame_UpdateMaxPower(self);
         CompactUnitFrame_UpdatePower(self);
         CompactUnitFrame_UpdatePowerColor(self);
@@ -204,8 +204,8 @@ end
 --7. Selection highlight position and texture.
 --8. Aggro highlight position and texture
 --9. Role icon position
-function CompactUnitFrame_SetUpFrame(frame, func)
-    func(frame);
+function CompactUnitFrame_SetUpFrame(frame, func, unit)
+    func(frame, unit or frame.unit);
     CompactUnitFrame_UpdateAll(frame);
 end
 
@@ -1355,6 +1355,11 @@ function CompactUnitFrameDropDown_Initialize(self)
     local menu;
     local name;
     local id = nil;
+    
+    if ( unit == "focus" ) then
+        return;
+    end
+    
     if ( UnitIsUnit(unit, "player") ) then
         menu = "SELF";
     elseif ( UnitIsUnit(unit, "vehicle") ) then
@@ -1421,6 +1426,78 @@ DefaultCompactUnitFrameSetupOptions = {
     width = NATIVE_UNIT_FRAME_WIDTH,
     displayBorder = true,
 }
+
+
+local function AfterTargetFrame_UpdateAuras(targetFrameName)
+    local frame = _G[targetFrameName .. "Frame"];
+    local leadingBuff = _G[targetFrameName .. "FrameBuff1"];
+    if not ( leadingBuff and leadingBuff:IsVisible() ) then
+        leadingBuff = _G[targetFrameName .. "FrameDebuff1"]
+    end
+    
+    if leadingBuff == nil then return end -- no single buff/debuff displayed yet
+    
+    if CompactRaidFrameManager_GetSetting("ReplaceTarget") then
+        leadingBuff:SetPoint("TOPLEFT", frame, "TOPLEFT", 5, -15);
+    end
+end
+
+local function SetVisibleBlizzardTargetFrame(visible, frameName)
+    local frame = _G[frameName .. "Frame"];
+    if ( not visible ) then
+        frame:DisableDrawLayer("Background")
+        frame:DisableDrawLayer("Border")
+        frame.originalWidth = frame:GetWidth()
+        frame:SetWidth(130)
+        
+        _G[frameName .. "FramePortrait"]:Hide()
+        _G[frameName .. "FrameTextureFrame"]:Hide()
+        _G[frameName .. "FrameHealthBar"]:SetAlpha(0)
+        _G[frameName .. "FrameManaBar"]:SetAlpha(0)
+        _G[frameName .. "FrameToT"]:SetAlpha(0)
+        
+    else
+        frame:EnableDrawLayer("Background")
+        frame:EnableDrawLayer("Border")
+
+        if ( frame.originalWidth ) then 
+            frame:SetWidth(frame.originalWidth)
+        end
+        
+        _G[frameName .. "FramePortrait"]:Show()
+        _G[frameName .. "FrameTextureFrame"]:Show()
+        _G[frameName .. "FrameHealthBar"]:SetAlpha(1)
+        _G[frameName .. "FrameManaBar"]:SetAlpha(1)
+        _G[frameName .. "FrameToT"]:SetAlpha(1)
+    end
+end
+
+function FrameReplacementCompactUnitFrameSetup(frame, unit)
+	assert(unit)
+    DefaultCompactUnitFrameSetup(frame);
+    
+    CompactUnitFrame_SetMaxBuffs(frame, 0);
+    CompactUnitFrame_SetMaxDebuffs(frame, 0);
+    CompactUnitFrame_SetMaxDispelDebuffs(frame, 0);
+    frame.ignoreParentAlpha.selectionHighlight:SetAlpha(0)
+
+    CompactUnitFrame_SetUpdateAllOnUpdate(frame, true);
+    
+    frame:SetFrameStrata("BACKGROUND");
+    if unit ~= nil then 
+		hooksecurefunc("TargetFrame_UpdateAuras", function() AfterTargetFrame_UpdateAuras(unit) end)
+        local unitFrame =  _G[unit .. "Frame"];
+        if unitFrame ~= nil then
+            frame:SetParent(unitFrame);
+            frame:SetAllPoints(unitFrame);
+			frame:SetFrameStrata("BACKGROUND"); -- for buffs to be visible
+			
+			frame:SetScript("OnShow", function() SetVisibleBlizzardTargetFrame(false, unit) TargetFrame_UpdateAuras(unitFrame) end)
+			frame:SetScript("OnHide", function() SetVisibleBlizzardTargetFrame(true, unit) TargetFrame_UpdateAuras(unitFrame) end)
+			frame:Show();
+        end
+    end
+end
 
 function DefaultCompactUnitFrameSetup(frame)
     local options = DefaultCompactUnitFrameSetupOptions;

@@ -567,6 +567,7 @@ function CompactUnitFrameProfiles_ApplyProfile(profile)
 	CompactRaidFrameContainer_ApplyToFrames(CompactRaidFrameContainer, "normal", CompactUnitFrame_UpdateAll);
 	CompactRaidFrameContainer_ApplyToFrames(CompactRaidFrameContainer, "mini", DefaultCompactMiniFrameSetup);
 	CompactRaidFrameContainer_ApplyToFrames(CompactRaidFrameContainer, "mini", CompactUnitFrame_UpdateAll);
+
 	--CompactRaidFrameContainer_ApplyToFrames(CompactRaidFrameContainer, "group", CompactRaidGroup_UpdateLayout);	--UpdateBorder calls UpdateLayout.
 
 	--Update the borders on the group frames.
@@ -615,6 +616,7 @@ CUFProfileActionTable = {
 	keepPetsCloseToOwner = CompactUnitFrameProfiles_GenerateRaidManagerSetting("KeepPetsCloseToOwner"),
 	displayMainTankAndAssist = CompactUnitFrameProfiles_GenerateRaidManagerSetting("DisplayMainTankAndAssist"),
 	displayPlayer = CompactUnitFrameProfiles_GenerateRaidManagerSetting("DisplayPlayer"),
+	replaceTarget = CompactUnitFrameProfiles_GenerateRaidManagerSetting("ReplaceTarget"),
 	displayHealPrediction = CompactUnitFrameProfiles_GenerateOptionSetter("displayHealPrediction", "all"),
 	displayPowerBar = CompactUnitFrameProfiles_GenerateSetUpOptionSetter("displayPowerBar", "normal"),
 	displayAggroHighlight = CompactUnitFrameProfiles_GenerateOptionSetter("displayAggroHighlight", "all"),

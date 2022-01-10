@@ -1,5 +1,6 @@
 function FlowContainer_Initialize(container)
     container.flowFrames = {};
+	container.standaloneFrames = {};
     --Default orientation to horizontal for now.
     FlowContainer_SetOrientation(container, "horizontal");
 
@@ -37,6 +38,10 @@ function FlowContainer_SetVerticalSpacing(container, verticalSpacing)
     FlowContainer_DoLayout(container);
 end
 
+function FlowContainer_AddStandaloneObject(container, object)
+    tinsert(container.standaloneFrames, object);
+end
+
 function FlowContainer_AddObject(container, object)
     tinsert(container.flowFrames, object);	--Do we want to let people choose where it will appear?
     FlowContainer_DoLayout(container);
@@ -62,19 +67,31 @@ function FlowContainer_EndAtomicAdd(container)
     FlowContainer_DoLayout(container);
 end
 
-function FlowContainer_RemoveObject(container, object)
-    assert(type(object) == "table");	--For now, Remove can't be used with non-widgets.
+local function FindAndRemoveObject(container, object)
     for i=1, #container.flowFrames do	--Used instead of tRemoveItem to eliminate dependencies.
         if ( container.flowFrames[i] == object ) then
             tremove(container.flowFrames, i);
-            break;
+            return;
         end
     end
+    
+    for i=1, #container.standaloneFrames do	--Used instead of tRemoveItem to eliminate dependencies.
+        if ( container.standaloneFrames[i] == object ) then
+            tremove(container.standaloneFrames, i);
+            return;
+        end
+    end
+end
+
+function FlowContainer_RemoveObject(container, object)
+    assert(type(object) == "table");	--For now, Remove can't be used with non-widgets.
+    FindAndRemoveObject(container, object);
     FlowContainer_DoLayout(container);
 end
 
 function FlowContainer_RemoveAllObjects(container)
     container.flowFrames = {};	--GC no worse than a table.wipe here.
+    container.standaloneFrames = {};	--GC no worse than a table.wipe here.
 end
 
 function FlowContainer_GetUsedBounds(container)	--Return x, y

@@ -12,9 +12,10 @@ function CompactRaidFrameReservation_GetFrame(self, key)
     return frame;
 end
 
-function CompactRaidFrameReservation_RegisterReservation(self, frame, key)
+function CompactRaidFrameReservation_RegisterReservation(self, frame, key, persistentReservation)
     assert(key);
     assert(not self.reservations[key] or self.reservations[key] == frame);
+    frame.persistentReservation = persistentReservation;
     self.reservations[key] = frame;
 end
 
@@ -24,8 +25,10 @@ function CompactRaidFrameReservation_ReleaseUnusedReservations(self)
             if ( self.releaseFunc ) then
                 self.releaseFunc(frame);
             end
-            self.reservations[key] = false;
-            tinsert(self.unusedFrames, frame);
+            if not frame.persistentReservation then
+                self.reservations[key] = false;
+                tinsert(self.unusedFrames, frame);
+            end
         end
     end
 end

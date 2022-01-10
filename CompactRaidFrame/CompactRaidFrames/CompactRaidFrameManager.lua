@@ -15,6 +15,10 @@ MINIMUM_RAID_CONTAINER_HEIGHT = 72;
 local RESIZE_HORIZONTAL_OUTSETS = 4;
 local RESIZE_VERTICAL_OUTSETS = 7;
 
+--Settings stuff
+local cachedSettings = {};
+local isSettingCached = {};
+
 function CompactRaidFrameManager_OnLoad(self)
     self.container = CompactRaidFrameContainer;
     self.container:SetParent(self);
@@ -47,7 +51,7 @@ function CompactRaidFrameManager_OnLoad(self)
     FlowContainer_Initialize(self.displayFrame.optionsFlowContainer);
 end
 
-local settings = { --[["Managed",]] "Locked", "SortMode", "KeepGroupsTogether", "DisplayPets", "DisplayMainTankAndAssist", "IsShown", "ShowBorders", "DisplayPlayer", "KeepPetsCloseToOwner" };
+local settings = { --[["Managed",]] "Locked", "SortMode", "KeepGroupsTogether", "DisplayPets", "DisplayMainTankAndAssist", "IsShown", "ShowBorders", "DisplayPlayer", "KeepPetsCloseToOwner", "ReplaceTarget" };
 function CompactRaidFrameManager_OnEvent(self, event, ...)
     if ( event ~= "RAID_TARGET_UPDATE" and InCombatLockdown() ) then
         self:RegisterEvent("PLAYER_REGEN_ENABLED");
@@ -271,7 +275,7 @@ function CRFManager_RaidWorldMarkerDropDown_Update()
     info.notCheckable = 1;
     info.text = REMOVE_WORLD_MARKERS;
     info.func = ClearRaidWorldMarker_OnClick;
-    info.arg1 = nil;	--Remove everything
+    info.arg1 = nil;    --Remove everything
     UIDropDownMenu_AddButton(info);
 end
 
@@ -352,7 +356,7 @@ function CompactRaidFrameManager_UpdateRaidIcons()
     local unit = "target";
     local disableAll = not CanBeRaidTarget(unit);
     for i=1, NUM_RAID_ICONS do
-        local button = _G["CompactRaidFrameManagerDisplayFrameRaidMarkersRaidMarker"..i];	--.... /cry
+        local button = _G["CompactRaidFrameManagerDisplayFrameRaidMarkersRaidMarker"..i];   --.... /cry
         if ( disableAll or button:GetID() == GetRaidTargetIndex(unit) ) then
             button:GetNormalTexture():SetDesaturated(true);
             button:SetAlpha(0.7);
@@ -374,9 +378,6 @@ function CompactRaidFrameManager_UpdateRaidIcons()
     end
 end
 
---Settings stuff
-local cachedSettings = {};
-local isSettingCached = {};
 function CompactRaidFrameManager_GetSetting(settingName)
     if ( not isSettingCached[settingName] ) then
         cachedSettings[settingName] = CompactRaidFrameManager_GetSettingBeforeLoad(settingName);
@@ -386,34 +387,36 @@ function CompactRaidFrameManager_GetSetting(settingName)
 end
 
 function CompactRaidFrameManager_GetSettingBeforeLoad(settingName)
-	if ( settingName == "Managed" ) then
-		return true;
-	elseif ( settingName == "Locked" ) then
-		return true;
-	elseif ( settingName == "SortMode" ) then
-		return "role";
-	elseif ( settingName == "KeepGroupsTogether" ) then
-		return false;
-	elseif ( settingName == "DisplayPets" ) then
-		return false;
-	elseif ( settingName == "KeepPetsCloseToOwner" ) then
-		return true;
-	elseif ( settingName == "DisplayMainTankAndAssist" ) then
-		return true;
-	elseif ( settingName == "IsShown" ) then
-		return true;
-	elseif ( settingName == "ShowBorders" ) then
-		return true;
-	elseif ( settingName == "HorizontalGroups" ) then
-		return false;
-	elseif ( settingName == "DisplayPlayer" ) then
-		return true;
-	else
-		GMError("Unknown setting "..tostring(settingName));
-	end
+    if ( settingName == "Managed" ) then
+        return true;
+    elseif ( settingName == "Locked" ) then
+        return true;
+    elseif ( settingName == "SortMode" ) then
+        return "role";
+    elseif ( settingName == "KeepGroupsTogether" ) then
+        return false;
+    elseif ( settingName == "DisplayPets" ) then
+        return false;
+    elseif ( settingName == "KeepPetsCloseToOwner" ) then
+        return true;
+    elseif ( settingName == "DisplayMainTankAndAssist" ) then
+        return true;
+    elseif ( settingName == "IsShown" ) then
+        return true;
+    elseif ( settingName == "ShowBorders" ) then
+        return true;
+    elseif ( settingName == "HorizontalGroups" ) then
+        return false;
+    elseif ( settingName == "DisplayPlayer" ) then
+        return true;
+    elseif ( settingName == "ReplaceTarget" ) then
+        return false;
+    else
+        GMError("Unknown setting "..tostring(settingName));
+    end
 end
 
-do	--Enclosure to make sure people go through SetSetting
+do  --Enclosure to make sure people go through SetSetting
     local function CompactRaidFrameManager_SetManaged(value)
         local container = CompactRaidFrameManager.container;
     end
@@ -520,40 +523,48 @@ do	--Enclosure to make sure people go through SetSetting
         CUF_HORIZONTAL_GROUPS = horizontalGroups;
     end
 
-	local function CompactRaidFrameManager_SetDisplayPlayer(value)
-		CompactRaidFrameContainer_TryUpdate(CompactRaidFrameContainer);
-	end
+    local function CompactRaidFrameManager_SetDisplayPlayer(value)
+        CompactRaidFrameContainer_TryUpdate(CompactRaidFrameContainer);
+    end
+    
+    
+    
+    local function CompactRaidFrameManager_SetReplaceTarget(value)
+        CompactRaidFrameContainer_SetReplaceTarget(CompactRaidFrameContainer, value);
+    end
 
-	function CompactRaidFrameManager_SetSetting(settingName, value)
-		cachedSettings[settingName] = value;
-		isSettingCached[settingName] = true;
-		--Perform the actual functions
-		if ( settingName == "Managed" ) then
-			CompactRaidFrameManager_SetManaged(value);
-		elseif ( settingName == "Locked" ) then
-			CompactRaidFrameManager_SetLocked(value);
-		elseif ( settingName == "SortMode" ) then
-			CompactRaidFrameManager_SetSortMode(value);
-		elseif ( settingName == "KeepGroupsTogether" ) then
-			CompactRaidFrameManager_SetKeepGroupsTogether(value);
-		elseif ( settingName == "DisplayPets" ) then
-			CompactRaidFrameManager_SetDisplayPets(value);
-		elseif ( settingName == "DisplayMainTankAndAssist" ) then
-			CompactRaidFrameManager_SetDisplayMainTankAndAssist(value);
-		elseif ( settingName == "IsShown" ) then
-			CompactRaidFrameManager_SetIsShown(value);
-		elseif ( settingName == "ShowBorders" ) then
-			CompactRaidFrameManager_SetBorderShown(value);
-		elseif ( settingName == "HorizontalGroups" ) then
-			CompactRaidFrameManager_SetHorizontalGroups(value);
-		elseif ( settingName == "DisplayPlayer" ) then
-			CompactRaidFrameManager_SetDisplayPlayer(value);
-		elseif ( settingName == "KeepPetsCloseToOwner" ) then
-			CompactRaidFrameManager_KeepPetsCloseToOwner(value)
-		else
-			error("Unknown setting "..tostring(settingName));
-		end
-	end
+    function CompactRaidFrameManager_SetSetting(settingName, value)
+        cachedSettings[settingName] = value;
+        isSettingCached[settingName] = true;
+        --Perform the actual functions
+        if ( settingName == "Managed" ) then
+            CompactRaidFrameManager_SetManaged(value);
+        elseif ( settingName == "Locked" ) then
+            CompactRaidFrameManager_SetLocked(value);
+        elseif ( settingName == "SortMode" ) then
+            CompactRaidFrameManager_SetSortMode(value);
+        elseif ( settingName == "KeepGroupsTogether" ) then
+            CompactRaidFrameManager_SetKeepGroupsTogether(value);
+        elseif ( settingName == "DisplayPets" ) then
+            CompactRaidFrameManager_SetDisplayPets(value);
+        elseif ( settingName == "DisplayMainTankAndAssist" ) then
+            CompactRaidFrameManager_SetDisplayMainTankAndAssist(value);
+        elseif ( settingName == "IsShown" ) then
+            CompactRaidFrameManager_SetIsShown(value);
+        elseif ( settingName == "ShowBorders" ) then
+            CompactRaidFrameManager_SetBorderShown(value);
+        elseif ( settingName == "HorizontalGroups" ) then
+            CompactRaidFrameManager_SetHorizontalGroups(value);
+        elseif ( settingName == "DisplayPlayer" ) then
+            CompactRaidFrameManager_SetDisplayPlayer(value);
+        elseif ( settingName == "KeepPetsCloseToOwner" ) then
+            CompactRaidFrameManager_KeepPetsCloseToOwner(value)
+        elseif ( settingName == "ReplaceTarget" ) then
+            CompactRaidFrameManager_SetReplaceTarget(value)
+        else
+            error("Unknown setting "..tostring(settingName));
+        end
+    end
 end
 
 function CompactRaidFrameManager_UpdateContainerVisibility()
@@ -728,7 +739,7 @@ end
 
 function CompactRaidFrameManager_ResizeFrame_LoadPosition(manager)
     local dynamic, topPoint, topOffset, bottomPoint, bottomOffset, leftPoint, leftOffset = GetRaidProfileSavedPosition(GetActiveRaidProfile());
-    if ( dynamic ) then	--We are automatically placed.
+    if ( dynamic ) then --We are automatically placed.
         manager.dynamicContainerPosition = true;
         CompactRaidFrameManager_UpdateContainerBounds(manager);
         return;
@@ -808,7 +819,7 @@ function CRFSort_Group(token1, token2)
         elseif ( token2 == "player" ) then
             return false;
         else
-            return token1 < token2;	--String compare is OK since we don't go above 1 digit for party.
+            return token1 < token2; --String compare is OK since we don't go above 1 digit for party.
         end
     end
 end
@@ -886,7 +897,7 @@ function CRFFlowFilterFunc(token)
         return false;
     end
 
-    if ( not IsInRaid() ) then	--We don't filter unless we're in a raid.
+    if ( not IsInRaid() ) then  --We don't filter unless we're in a raid.
         return true;
     end
 
@@ -904,7 +915,7 @@ function CRFFlowFilterFunc(token)
         end
 
         local showingMTandMA = CompactRaidFrameManager_GetSetting("DisplayMainTankAndAssist");
-        if ( raidRole and (showingMTandMA and showingMTandMA ~= "0") ) then	--If this character is already displayed as a Main Tank/Main Assist, we don't want to show them a second time
+        if ( raidRole and (showingMTandMA and showingMTandMA ~= "0") ) then --If this character is already displayed as a Main Tank/Main Assist, we don't want to show them a second time
             return false;
         end
     end
@@ -917,16 +928,16 @@ function CRFGroupFilterFunc(groupNum)
 end
 --Counting functions
 RaidInfoCounts = {
-    aliveRoleTANK 		= 0,
-    totalRoleTANK		= 0,
-    aliveRoleHEALER		= 0,
-    totalRoleHEALER		= 0,
-    aliveRoleDAMAGER	= 0,
-    totalRoleDAMAGER	= 0,
-    aliveRoleNONE		= 0,
-    totalRoleNONE		= 0,
-    totalCount			= 0,
-    totalAlive			= 0,
+    aliveRoleTANK       = 0,
+    totalRoleTANK       = 0,
+    aliveRoleHEALER     = 0,
+    totalRoleHEALER     = 0,
+    aliveRoleDAMAGER    = 0,
+    totalRoleDAMAGER    = 0,
+    aliveRoleNONE       = 0,
+    totalRoleNONE       = 0,
+    totalCount          = 0,
+    totalAlive          = 0,
 }
 
 local function CRF_ResetCountedStuff()
