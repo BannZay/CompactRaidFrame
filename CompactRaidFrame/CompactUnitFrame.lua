@@ -348,6 +348,10 @@ function CompactUnitFrame_UpdateInVehicle(frame)
 end
 
 function CompactUnitFrame_UpdateVisible(frame)
+    if InCombatLockdown() then 
+        return 
+    end
+
     if ( UnitExists(frame.unit) or UnitExists(frame.displayedUnit) ) then
         if ( not frame.unitExists ) then
             frame.newUnit = true;
@@ -847,6 +851,7 @@ end
 --If you are making changes here, it is possible you may want to make changes there as well.
 function CompactUnitFrameUtil_UpdateFillBar(frame, previousTexture, bar, amount, barOffsetXPercent)
     local totalWidth, totalHeight = frame.healthBar:GetSize();
+
     if ( totalWidth == 0 or amount == 0 ) then
         bar:Hide();
         if ( bar.overlay ) then
@@ -854,16 +859,36 @@ function CompactUnitFrameUtil_UpdateFillBar(frame, previousTexture, bar, amount,
         end
         return previousTexture;
     end
+
     local barOffsetX = 0;
     if ( barOffsetXPercent ) then
         barOffsetX = totalWidth * barOffsetXPercent;
     end
+
     bar:SetPoint("TOPLEFT", previousTexture, "TOPRIGHT", barOffsetX, 0);
     bar:SetPoint("BOTTOMLEFT", previousTexture, "BOTTOMRIGHT", barOffsetX, 0);
+
     local _, totalMax = frame.healthBar:GetMinMaxValues();
+
     local barSize = (amount / totalMax) * totalWidth;
     bar:SetWidth(barSize);
     bar:Show();
+
+    if  ( bar.overlay )
+    and ( barSize     / bar.overlay.tileSize >  10001
+    or    barSize     / bar.overlay.tileSize < -10001
+    or    totalHeight / bar.overlay.tileSize >  10001
+    or    totalHeight / bar.overlay.tileSize < -10001 ) then
+        print("amount:", amount,
+            "barOffsetXPercent:", barOffsetXPercent,
+            "bar.overlay.tileSize:", bar.overlay.tileSize,
+            "barSize:", barSize,
+            "totalHeight:", totalHeight,
+            debugstack())
+		LAST_ERROR = debugstack()
+        return bar;
+    end
+
     if ( bar.overlay ) then
         bar.overlay:SetTexCoord(0, barSize / bar.overlay.tileSize, 0, totalHeight / bar.overlay.tileSize);
         bar.overlay:Show();
@@ -1356,11 +1381,10 @@ function CompactUnitFrameDropDown_Initialize(self)
     local name;
     local id = nil;
     
-    if ( unit == "focus" ) then
-        return;
-    end
-    
-    if ( UnitIsUnit(unit, "player") ) then
+    if ( unit == "Focus" ) then
+        menu = "FOCUS";
+        name = SET_FOCUS;
+    elseif ( UnitIsUnit(unit, "player") ) then
         menu = "SELF";
     elseif ( UnitIsUnit(unit, "vehicle") ) then
         -- NOTE: vehicle check must come before pet check for accuracy's sake because
@@ -1438,17 +1462,18 @@ local function AfterTargetFrame_UpdateAuras(targetFrameName)
     if leadingBuff == nil then return end -- no single buff/debuff displayed yet
     
     if CompactRaidFrameManager_GetSetting("ReplaceTarget") then
-        leadingBuff:SetPoint("TOPLEFT", frame, "TOPLEFT", 5, -15);
+        leadingBuff:SetPoint("TOPLEFT", frame, "TOPLEFT", 10, -15);
     end
 end
 
+-- hides Unit Frame but keeps buffs
 local function SetVisibleBlizzardTargetFrame(visible, frameName)
     local frame = _G[frameName .. "Frame"];
     if ( not visible ) then
         frame:DisableDrawLayer("Background")
         frame:DisableDrawLayer("Border")
         frame.originalWidth = frame:GetWidth()
-        frame:SetWidth(130)
+        frame:SetWidth(140)
         
         _G[frameName .. "FramePortrait"]:Hide()
         _G[frameName .. "FrameTextureFrame"]:Hide()
@@ -1472,9 +1497,38 @@ local function SetVisibleBlizzardTargetFrame(visible, frameName)
     end
 end
 
+local function FocusFrame_OnDragStart(self, button)
+    FOCUS_FRAME_MOVING = false;
+    if ( not FOCUS_FRAME_LOCKED ) then
+        local cursorX, cursorY = GetCursorPosition();
+        -- self:SetFrameStrata("DIALOG");
+        self:StartMoving();
+        FOCUS_FRAME_MOVING = true;
+    end
+end
+
+local function FocusFrame_OnDragStop(self)
+    if ( not FOCUS_FRAME_LOCKED and FOCUS_FRAME_MOVING ) then
+        self:StopMovingOrSizing();
+        -- self:SetFrameStrata("BACKGROUND");
+        ValidateFramePosition(self, 25);
+        FOCUS_FRAME_MOVING = false;
+    end
+end
+
 function FrameReplacementCompactUnitFrameSetup(frame, unit)
-	assert(unit)
+    assert(unit)
+    
+    if frame.standaloneFrame and frame.initialized then
+        return
+    end
+    
+    if InCombatLockdown() then
+        return
+    end
+    
     DefaultCompactUnitFrameSetup(frame);
+    
     
     CompactUnitFrame_SetMaxBuffs(frame, 0);
     CompactUnitFrame_SetMaxDebuffs(frame, 0);
@@ -1485,17 +1539,27 @@ function FrameReplacementCompactUnitFrameSetup(frame, unit)
     
     frame:SetFrameStrata("BACKGROUND");
     if unit ~= nil then 
-		hooksecurefunc("TargetFrame_UpdateAuras", function() AfterTargetFrame_UpdateAuras(unit) end)
+        hooksecurefunc("TargetFrame_UpdateAuras", function() AfterTargetFrame_UpdateAuras(unit) end)
         local unitFrame =  _G[unit .. "Frame"];
         if unitFrame ~= nil then
             frame:SetParent(unitFrame);
             frame:SetAllPoints(unitFrame);
-			frame:SetFrameStrata("BACKGROUND"); -- for buffs to be visible
-			
-			frame:SetScript("OnShow", function() SetVisibleBlizzardTargetFrame(false, unit) TargetFrame_UpdateAuras(unitFrame) end)
-			frame:SetScript("OnHide", function() SetVisibleBlizzardTargetFrame(true, unit) TargetFrame_UpdateAuras(unitFrame) end)
-			frame:Show();
+            frame:SetFrameStrata("BACKGROUND"); -- for buffs to be visible
+            
+            frame:SetScript("OnShow", function() SetVisibleBlizzardTargetFrame(false, unit) TargetFrame_UpdateAuras(unitFrame) end)
+            frame:SetScript("OnHide", function() SetVisibleBlizzardTargetFrame(true, unit) TargetFrame_UpdateAuras(unitFrame) end)
+            if unitFrame:GetScript("OnDragStart") then
+                local oldScript = unitFrame:GetScript("OnDragStart");
+                unitFrame:SetScript("OnDragStart", FocusFrame_OnDragStart);
+                unitFrame:SetScript("OnDragStop", FocusFrame_OnDragStop);
+            end
+            
+            frame:Show();
         end
+    end
+
+    if frame.standaloneFrame then 
+        frame.initialized = true;
     end
 end
 

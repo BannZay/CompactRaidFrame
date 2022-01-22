@@ -1,3 +1,12 @@
+local _UnitPopup_OnClick;
+local function UnitPopup_OnClick(...)
+   print(123)
+   _UnitPopup_OnClick(...);
+end
+
+
+UnitPopup_OnClick = UnitPopup_OnClick
+
 ATLAS_INFO_STORAGE = ATLAS_INFO_STORAGE or {};
 --[[
 ["atlasName"] =

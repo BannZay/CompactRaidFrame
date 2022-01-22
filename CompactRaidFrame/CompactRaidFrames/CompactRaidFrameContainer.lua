@@ -137,8 +137,14 @@ function CompactRaidFrameContainer_SetBorderShown(self, showBorder)
 end
 
 function CompactRaidFrameContainer_SetReplaceTarget(self, replaceTarget)
+    
     self.ReplaceTarget = replaceTarget;
-    CompactRaidFrameContainer_TryUpdate(self);
+    if ( InCombatLockdown() ) then
+        self:RegisterEvent("PLAYER_REGEN_ENABLED");
+        return;
+    else
+		CompactRaidFrameContainer_TryUpdate(self);
+	end
 end
 
 function CompactRaidFrameContainer_ApplyToFrames(self, updateSpecifier, func, ...)
@@ -303,7 +309,8 @@ function CompactRaidFrameContainer_ReplaceUnitFrames(self)
     local targetFrameTot = CompactRaidFrameContainer_AddUnitFrame(self, "TargetTarget", "frameReplacement", true);
     targetFrameTot:ClearAllPoints();
     targetFrameTot:SetPoint("BOTTOMRIGHT", targetFrame, "BOTTOMRIGHT", 0, -40);
-    targetFrameTot:SetPoint("TOPLEFT", targetFrame, "BOTTOM", 0, 0);
+    targetFrameTot:SetPoint("TOPLEFT", targetFrame, "BOTTOMLEFT", 40, 0);
+	targetFrameTot:SetParent(targetFrame);
     
     local focusFrame = CompactRaidFrameContainer_AddUnitFrame(self, "Focus", "frameReplacement", true);
 end
@@ -404,6 +411,8 @@ function CompactRaidFrameContainer_AddUnitFrame(self, unit, frameType, standalon
     else
         FlowContainer_AddObject(self, frame);
     end
+
+    frame.standaloneFrame = standalone;
     return frame;
 end
 
@@ -428,7 +437,8 @@ function CompactRaidFrameContainer_GetUnitFrame(self, unit, frameType, standalon
     local frame = CompactRaidFrameReservation_GetFrame(self.frameReservations[frameType], mapping);
     if ( not frame ) then
         local name = standalone and "CompactRaidFrameStandalone" or "CompactRaidFrame" -- not to break existing addons that are relies on frame number
-        
+        -- local name = "CompactRaidFrame"
+
         if unitFramesCreated[name] == nil then
             unitFramesCreated[name] = 0
         end
